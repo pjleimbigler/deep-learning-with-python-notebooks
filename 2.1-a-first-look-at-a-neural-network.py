@@ -40,6 +40,8 @@
 #
 # </div>
 
+import matplotlib.pyplot as plt
+
 import keras
 keras.__version__
 
@@ -74,29 +76,11 @@ from keras.datasets import mnist
 
 train_images.shape
 
+test_images.shape
+
 import matplotlib.pyplot as plt
 
 train_labels[:10]
-
-
-def show_digits(images, labels, preds, nrows, ncols, i0):
-    n = nrows * ncols
-    fig, axes = plt.subplots(nrows, ncols, figsize=(3*ncols, 3*nrows))
-    
-    for i, ax in enumerate(axes.flatten()):
-        idx = i0 + i
-        
-        ax.imshow(images[idx])
-        
-        title_string = f'image {idx}\nlabel={labels[idx]}'
-        if preds is not None:
-            title_string += f', pred={preds[idx]}'
-        ax.set_title(title_string)
-        
-    plt.tight_layout()
-
-
-show_digits(train_images, train_labels, None, 3, 5, 0)
 
 # `train_images` and `train_labels` form the "training set", the data that the model will learn from. The model will then be tested on the 
 # "test set", `test_images` and `test_labels`. Our images are encoded as Numpy arrays, and the labels are simply an array of digits, ranging 
@@ -110,6 +94,26 @@ len(train_labels)
 
 train_labels
 
+
+def show_digits(images, labels, preds, nrows, ncols, i0):
+    n = nrows * ncols
+    fig, axes = plt.subplots(nrows, ncols, figsize=(3*ncols, 3*nrows))
+    
+    for i, ax in enumerate(axes.flatten()):
+        idx = i0 + i
+        
+        ax.imshow(images[idx], cmap='Greys_r')
+        
+        title_string = f'image {idx}\nlabel={labels[idx]}'
+        if preds is not None:
+            title_string += f', pred={preds[idx]}'
+        ax.set_title(title_string)
+        
+    plt.tight_layout()
+
+
+show_digits(train_images, train_labels, None, 2, 5, 0)
+
 # Let's have a look at the test data:
 
 test_images.shape
@@ -118,19 +122,43 @@ len(test_labels)
 
 test_labels
 
-# Our workflow will be as follow: first we will present our neural network with the training data, `train_images` and `train_labels`. The 
+show_digits(test_images, test_labels, None, 2, 5, 0)
+
+# Our workflow will be as follows: first we will present our neural network with the training data, `train_images` and `train_labels`. The 
 # network will then learn to associate images and labels. Finally, we will ask the network to produce predictions for `test_images`, and we 
 # will verify if these predictions match the labels from `test_labels`.
 #
 # Let's build our network -- again, remember that you aren't supposed to understand everything about this example just yet.
 
 # +
-from keras import models
-from keras import layers
+# # Note to self: how much has the keras API changed since the writing of this book?
+# from keras import models
+# from keras import layers
 
-network = models.Sequential()
-network.add(layers.Dense(512, activation='relu', input_shape=(28 * 28,)))
-network.add(layers.Dense(10, activation='softmax'))
+# network = models.Sequential()
+# network.add(layers.Dense(512, activation='relu', input_shape=(28 * 28,)))
+# network.add(layers.Dense(10, activation='softmax'))
+# -
+
+# 2019-11-07: let's try to modernize the above code cell based on
+# https://www.tensorflow.org/guide/keras
+from tensorflow import keras
+keras.__version__
+
+import keras as keras_direct_import
+keras_direct_import.__version__
+
+# +
+from tensorflow.keras import layers
+model = keras.Sequential()
+
+# Densely connected layer with 512 units
+# What happens if we omit the input shape?
+# model.add(layers.Dense(512, activation='relu', input_shape=(28 * 28,)))
+model.add(layers.Dense(512, activation='relu'))
+
+# Another densely connected layer with 10 (output) units
+model.add(layers.Dense(10, activation='softmax'))
 # -
 
 #
@@ -154,14 +182,16 @@ network.add(layers.Dense(10, activation='softmax'))
 #
 # The exact purpose of the loss function and the optimizer will be made clear throughout the next two chapters.
 
-network.compile(optimizer='rmsprop',
-                loss='categorical_crossentropy',
-                metrics=['accuracy'])
+model.compile(optimizer='rmsprop',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
 
 #
 # Before training, we will preprocess our data by reshaping it into the shape that the network expects, and scaling it so that all values are in 
 # the `[0, 1]` interval. Previously, our training images for instance were stored in an array of shape `(60000, 28, 28)` of type `uint8` with 
 # values in the `[0, 255]` interval. We transform it into a `float32` array of shape `(60000, 28 * 28)` with values between 0 and 1.
+
+train_images.shape
 
 # +
 train_images = train_images.reshape((60000, 28 * 28))
@@ -173,6 +203,8 @@ test_images = test_images.astype('float32') / 255
 
 # We also need to categorically encode the labels, a step which we explain in chapter 3:
 
+train_labels[0:5]
+
 # +
 from keras.utils import to_categorical
 
@@ -180,17 +212,31 @@ train_labels = to_categorical(train_labels)
 test_labels = to_categorical(test_labels)
 # -
 
+train_labels[0:5]
+
+import pandas as pd
+pd.DataFrame(train_labels[0:5].astype(int))
+
 # We are now ready to train our network, which in Keras is done via a call to the `fit` method of the network: 
 # we "fit" the model to its training data.
 
-network.fit(train_images, train_labels, epochs=5, batch_size=128)
+history = model.fit(train_images, train_labels, epochs=20, batch_size=128, validation_split=0.1)
 
 # Two quantities are being displayed during training: the "loss" of the network over the training data, and the accuracy of the network over 
 # the training data.
 #
 # We quickly reach an accuracy of 0.989 (i.e. 98.9%) on the training data. Now let's check that our model performs well on the test set too:
 
-test_loss, test_acc = network.evaluate(test_images, test_labels)
+plt.plot(history.history['acc'])
+plt.plot(history.history['val_acc'])
+plt.title('Model accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Val'], loc='upper left')
+plt.grid()
+plt.show()
+
+test_loss, test_acc = model.evaluate(test_images, test_labels)
 
 print('test_acc:', test_acc)
 
