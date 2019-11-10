@@ -40,6 +40,7 @@
 #
 # </div>
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 import keras
@@ -95,7 +96,7 @@ len(train_labels)
 train_labels
 
 
-def show_digits(images, labels, preds, nrows, ncols, i0):
+def show_digits(images, labels, preds, nrows, ncols, i0=0):
     n = nrows * ncols
     fig, axes = plt.subplots(nrows, ncols, figsize=(3*ncols, 3*nrows))
     
@@ -250,3 +251,26 @@ print('test_acc:', test_acc)
 # less than 20 lines of Python code. In the next chapter, we will go in detail over every moving piece we just previewed, and clarify what is really 
 # going on behind the scenes. You will learn about "tensors", the data-storing objects going into the network, about tensor operations, which 
 # layers are made of, and about gradient descent, which allows our network to learn from its training examples.
+
+# <div style='background:#f4f4ff'>
+#
+# # Epilogue: miscellaneous experiments
+#
+# </div>
+
+# ## Sanity checks by hand
+
+train_images.shape
+
+preds = model.predict(train_images[0:10, :]).argmax(axis=1)
+
+preds
+
+show_digits(train_images[:10].reshape(10, 28, 28), 
+            train_labels[:10].argmax(axis=1), 
+            preds, 2, 5)
+
+from keras.utils import plot_model
+plot_model(model, rankdir='LR')
+
+# Looks about right.
