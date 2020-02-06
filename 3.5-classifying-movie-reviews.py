@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -5,8 +6,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.2.4
+#       format_version: '1.5'
+#       jupytext_version: 1.3.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -58,6 +59,8 @@ from tensorflow.keras.datasets import imdb
 # There are a couple of creative solutions in this thread: https://stackoverflow.com/questions/55890813/how-to-fix-object-arrays-cannot-be-loaded-when-allow-pickle-false-for-imdb-loa/56062555
 #
 # Rather than edit `imdb.py`, I'll follow Sajad Norouzi's answer in the above thread:
+#
+# **EDIT 2020-02-05:** the above command just worked. I guess I'll skip execution of the following code block, but will keep it here in case this command breaks again in the future.
 
 # +
 import numpy as np
@@ -84,6 +87,8 @@ np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
 
 len(train_data[0])
 
+type(train_data)
+
 train_data.dtype
 
 type(train_data[0])
@@ -106,10 +111,9 @@ word_index = imdb.get_word_index()
 reverse_word_index = dict([(value, key) for (key, value) in word_index.items()])
 # We decode the review; note that our indices were offset by 3
 # because 0, 1 and 2 are reserved indices for "padding", "start of sequence", and "unknown".
-decoded_review = ' '.join([reverse_word_index.get(i - 3, '?') for i in train_data[0]])
+decoded_review = ' '.join([reverse_word_index.get(i - 3, '�') for i in train_data[0]])
 
 decoded_review
-
 
 # ## Preparing the data
 #
@@ -126,6 +130,9 @@ decoded_review
 # We will go with the latter solution. Let's vectorize our data, which we will do manually for maximum clarity:
 
 # Wait, maybe the reason the official data loader gave us 1D arrays of python lists is to demonstrate the need for data prep and vectorization.
+
+import numpy as np
+
 
 # +
 def vectorize_sequences(sequences, dimension=10000):
