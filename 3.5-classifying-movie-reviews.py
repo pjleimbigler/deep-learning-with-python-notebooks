@@ -54,28 +54,30 @@ from tensorflow.keras.datasets import imdb
 
 (train_data, train_labels), (test_data, test_labels) = imdb.load_data(num_words=10000)
 
+# ## <div style='background:#f4f4ff'>Problems</div>
+#
 # `ValueError: Object arrays cannot be loaded when allow_pickle=False`. What happened since these notebooks were published? According to [this git commit](https://github.com/tensorflow/tensorflow/commit/79a8d5cdad942b9853aa70b59441983b42a8aeb3#diff-b0a029ad68170f59173eb2f6660cd8e0), it turns out that numpy 1.16.3 changed the `load()` API such that the `allow_pickle` keyword argument defaults to `False`, which breaks the above load command.
 #
 # There are a couple of creative solutions in this thread: https://stackoverflow.com/questions/55890813/how-to-fix-object-arrays-cannot-be-loaded-when-allow-pickle-false-for-imdb-loa/56062555
 #
 # Rather than edit `imdb.py`, I'll follow Sajad Norouzi's answer in the above thread:
 #
-# **EDIT 2020-02-05:** the above command just worked. I guess I'll skip execution of the following code block, but will keep it here in case this command breaks again in the future.
+# **<div style='background:#f4f4ff'>EDIT 2020-02-05:</div>** upon re-running this notebook, the above command just... worked, without writing anything to cell output. I guess I'll skip execution of the following workaround code block, but will keep it in this notebook in case the above command breaks again in the future.
 
 # +
-import numpy as np
+# import numpy as np
 
-# This one line led to a 40-minute diversion on functools.partial, currying (similar but different!), and FP
-from functools import partial
+# # This one line led to a 40-minute diversion on functools.partial, currying (similar but different!), and FP
+# from functools import partial
 
-# save np.load
-np_load_old = partial(np.load)
+# # save np.load
+# np_load_old = partial(np.load)
 
-# modify the default parameters of np.load
-np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
+# # modify the default parameters of np.load
+# np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
 
-# call load_data with allow_pickle implicitly set to true
-(train_data, train_labels), (test_data, test_labels) = imdb.load_data(num_words=10000)
+# # call load_data with allow_pickle implicitly set to true
+# (train_data, train_labels), (test_data, test_labels) = imdb.load_data(num_words=10000)
 # -
 
 #
@@ -95,6 +97,7 @@ type(train_data[0])
 
 # Wait, so Keras' official data-loading helper function gives us a *numpy array of python lists?* I realize that performance is not super important, but why not just a 2D array?
 
+# Sanity check our training data
 train_data[0][0:10]
 
 train_labels[0]
@@ -115,6 +118,29 @@ decoded_review = ' '.join([reverse_word_index.get(i - 3, '�') for i in train_d
 
 decoded_review
 
+
+def decode_review(arg):
+    # We decode the review; note that our indices were offset by 3
+    # because 0, 1 and 2 are reserved indices for "padding", "start of sequence", and "unknown".
+    
+    if isinstance(arg, int):
+        return ' '.join([reverse_word_index.get(i - 3, '�') for i in train_data[arg]])
+    else:  # arg is an encoded review
+        return ' '.join([reverse_word_index.get(i - 3, '�') for i in arg])
+
+
+decode_review(0)
+
+for i in range(1, 31):
+    print(i, reverse_word_index[i])
+
+# I'd guess `br` comes from imperfect removal of `<br>` tags.
+
+for review in train_data:
+    if 10 in review:
+        print(decode_review(review))
+        break
+
 # ## Preparing the data
 #
 #
@@ -129,7 +155,9 @@ decoded_review
 #
 # We will go with the latter solution. Let's vectorize our data, which we will do manually for maximum clarity:
 
-# Wait, maybe the reason the official data loader gave us 1D arrays of python lists is to demonstrate the need for data prep and vectorization.
+# <span style='background:#f4f4ff'>**Note to self:**</span> Wait, maybe the reason the official data loader gave us 1D arrays of python lists is to demonstrate the need for data prep and vectorization.
+#
+# The following for-looping is naive, but only takes something like 10 s.
 
 import numpy as np
 
@@ -152,13 +180,15 @@ x_test = vectorize_sequences(test_data)
 
 x_train[0]
 
+x_train.shape
+
 # We should also vectorize our labels, which is straightforward:
 
 # Our vectorized labels
 y_train = np.asarray(train_labels).astype('float32')
 y_test = np.asarray(test_labels).astype('float32')
 
-# Side note: what's the difference between `np.asarray()` and `np.array()`?
+# <span style='background:#f4f4ff'>Side note: what's the difference between `np.asarray()` and `np.array()`?</span>
 
 # Now our data is ready to be fed into a neural network.
 
